@@ -26,7 +26,11 @@
 
 #include <nuttx/config.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <nuttx/sensors/icm42688.h>
 
+#define IMU_DEVPATH "dev/imu0"
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -34,9 +38,60 @@
 /****************************************************************************
  * hello_main
  ****************************************************************************/
+struct icm42688_imu_msg
+{
+  int16_t temp;
+  int16_t acc_x;
+  int16_t acc_y;
+  int16_t acc_z;
+  int16_t gyro_x;
+  int16_t gyro_y;
+  int16_t gyro_z;
+};
+
+static uint16_t swap16(uint16_t val)
+{
+#ifdef CONFIG_ENDIAN_BIG
+  return val;
+#else
+  return (val >> 8) | (val << 8);
+#endif
+}
 
 int main(int argc, FAR char *argv[])
 {
-  printf("uav imu test!!\n");
+  int fd;
+  struct icm42688_imu_msg data;
+  uint32_t prev;
+
+  fd = open(IMU_DEVPATH, O_RDONLY);
+  if (fd < 0)
+  {
+    printf("Device %s open failure. %d\n", IMU_DEVPATH, fd);
+    return -1;
+  }
+
+  prev = 0;
+  for (;;)
+  {
+    int ret;
+
+    ret = read(fd, &data, sizeof(struct icm42688_imu_msg));
+    if (ret != sizeof(struct icm42688_imu_msg))
+    {
+      fprintf(stderr, "Read failed.\n");
+      break;
+    }
+
+    /* If sensing time has been changed, show 6 axis data. */
+
+    printf(" %d, %d, %d / %d, %d, %d\n",
+           swap16(data.acc_x), swap16(data.acc_y), swap16(data.acc_z),
+           swap16(data.gyro_x), swap16(data.gyro_y), swap16(data.gyro_z));
+    fflush(stdout);
+    nxsig_usleep(200000);
+  }
+
+  close(fd);
   return 0;
 }
