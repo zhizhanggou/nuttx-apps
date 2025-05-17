@@ -38,7 +38,6 @@
 
 int main(int argc, FAR char *argv[])
 {
-  boardctl(BOARDIOC_INIT, 0);
   printf("Hello, World!!\n");
   return 0;
 }

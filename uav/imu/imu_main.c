@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/boardctl.h>
 #include <nuttx/sensors/icm42688.h>
 
 #define IMU_DEVPATH "dev/imu0"
@@ -40,29 +41,21 @@
  ****************************************************************************/
 struct icm42688_imu_msg
 {
-  int16_t temp;
-  int16_t acc_x;
-  int16_t acc_y;
-  int16_t acc_z;
-  int16_t gyro_x;
-  int16_t gyro_y;
-  int16_t gyro_z;
+  float temp;
+  float acc_x;
+  float acc_y;
+  float acc_z;
+  float gyro_x;
+  float gyro_y;
+  float gyro_z;
 };
-
-static uint16_t swap16(uint16_t val)
-{
-#ifdef CONFIG_ENDIAN_BIG
-  return val;
-#else
-  return (val >> 8) | (val << 8);
-#endif
-}
 
 int main(int argc, FAR char *argv[])
 {
   int fd;
   struct icm42688_imu_msg data;
   uint32_t prev;
+  boardctl(BOARDIOC_INIT, 0);
 
   fd = open(IMU_DEVPATH, O_RDONLY);
   if (fd < 0)
@@ -85,9 +78,10 @@ int main(int argc, FAR char *argv[])
 
     /* If sensing time has been changed, show 6 axis data. */
 
-    printf(" %d, %d, %d / %d, %d, %d\n",
-           swap16(data.acc_x), swap16(data.acc_y), swap16(data.acc_z),
-           swap16(data.gyro_x), swap16(data.gyro_y), swap16(data.gyro_z));
+    printf("%.2f / %.2f, %.2f, %.2f / %.2f, %.2f, %.2f\n",
+          data.temp,
+           data.acc_x, data.acc_y, data.acc_z,
+           data.gyro_x, data.gyro_y, data.gyro_z);
     fflush(stdout);
     nxsig_usleep(200000);
   }
